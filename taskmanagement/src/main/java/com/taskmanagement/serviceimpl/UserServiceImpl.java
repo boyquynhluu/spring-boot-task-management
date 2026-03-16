@@ -2,20 +2,15 @@ package com.taskmanagement.serviceimpl;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.taskmanagement.constants.Constants;
-import com.taskmanagement.dto.UserRequest;
 import com.taskmanagement.entities.RefreshToken;
 import com.taskmanagement.entities.User;
 import com.taskmanagement.repositories.RefreshTokenRepository;

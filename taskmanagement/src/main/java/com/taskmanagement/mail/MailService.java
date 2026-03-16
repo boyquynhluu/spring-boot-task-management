@@ -12,7 +12,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.taskmanagement.entities.User;
-import com.taskmanagement.entities.VerificationToken;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;

@@ -1,8 +1,6 @@
 package com.taskmanagement.serviceimpl;
 
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.GrantedAuthority;
