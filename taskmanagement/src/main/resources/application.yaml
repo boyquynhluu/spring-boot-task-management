@@ -1,3 +1,8 @@
 spring:
   application:
     name: Task Management System
+  profiles:
+    active: dev
+
+server:
+  port: 8080

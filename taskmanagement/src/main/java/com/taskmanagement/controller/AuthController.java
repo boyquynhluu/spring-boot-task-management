@@ -1,0 +1,182 @@
+package com.taskmanagement.controller;
+
+import java.time.Duration;
+import java.util.Map;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.taskmanagement.constants.Constants;
+import com.taskmanagement.dto.AuthRequest;
+import com.taskmanagement.dto.AuthResponse;
+import com.taskmanagement.dto.UserRequest;
+import com.taskmanagement.security.jwt.JwtTokenProvider;
+import com.taskmanagement.service.AuthService;
+import com.taskmanagement.service.UserService;
+import com.taskmanagement.serviceimpl.CustomUserDetailsService;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@RestController
+@RequestMapping("/api/auth")
+@Slf4j(topic = "AUTH CONTROLLER")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final AuthService authService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final CustomUserDetailsService customUserDetailsService;
+    private final UserService userService;
+
+    @PostMapping(value = "/login")
+    public ResponseEntity<AuthResponse> authenticate(@RequestBody AuthRequest authRequest, HttpServletRequest request,
+            HttpServletResponse response) {
+        log.info("START LOGIN CONTROLLER");
+
+        // Generate Token
+        AuthResponse authResponse = authService.auth(authRequest);
+
+        // Register Refresh Token
+        userService.registerRefreshToken(authRequest.getUsernameOrEmail(), authResponse.getRefreshToken());
+
+        // Set Token in cookie
+        this.setTokenInCookie(response, authResponse.getAccessToken(), authResponse.getRefreshToken());
+
+        AuthResponse jwtAuthResponse = new AuthResponse();
+        jwtAuthResponse.setAccessToken(authResponse.getAccessToken());
+
+        return ResponseEntity.ok(jwtAuthResponse);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(HttpServletRequest request, HttpServletResponse response) {
+        log.info("START REFRESH TOKEN");
+        // Get refresh token from cookie
+        String refreshToken = jwtTokenProvider.getRefreshTokenFromCookie(request);
+        if (refreshToken == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No refresh token found");
+        }
+        // validate refreshToken
+        jwtTokenProvider.validateToken(refreshToken);
+        // Lấy username từ token
+        String username = jwtTokenProvider.getUsername(refreshToken);
+
+        // Lấy thông tin user từ DB
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+
+        // Tạo access token mới
+        String newAccessToken = jwtTokenProvider.generateAccessToken(
+                new UsernamePasswordAuthenticationToken(userDetails.getUsername(), null, userDetails.getAuthorities()),
+                userDetails.getUsername());
+
+        // Set Token in cookie
+        this.setTokenInCookie(response, newAccessToken, refreshToken);
+
+        AuthResponse jwtAuthResponse = new AuthResponse();
+        jwtAuthResponse.setAccessToken(newAccessToken);
+
+        return ResponseEntity.ok(jwtAuthResponse);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
+        log.info("START LOGOUT TOKEN");
+        // Get refresh token from cookie
+        String refreshToken = jwtTokenProvider.getRefreshTokenFromCookie(request);
+        if (refreshToken != null) {
+            try {
+                String username = jwtTokenProvider.getUsername(refreshToken);
+                userService.deleteByRefreshToken(username);
+                log.info("Logout success for user: {}", username);
+            } catch (Exception e) {
+                log.warn("Invalid refresh token, skip delete: {}", e.getMessage());
+            }
+        } else {
+            log.warn("No refresh token found in cookie");
+        }
+
+        // Xóa cả refresh token và access token cookie
+        ResponseCookie deleteRefresh = ResponseCookie.from(Constants.REFRESH_TOKEN, "")
+                .httpOnly(true)
+                .secure(false) // Dev false, Prod true
+                .path("/")
+                .maxAge(0)
+                .build();
+
+        ResponseCookie deleteAccess = ResponseCookie.from(Constants.ACCESS_TOKEN, "")
+                .httpOnly(false) // access token FE có thể đọc
+                .secure(false)
+                .path("/")
+                .maxAge(0)
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, deleteRefresh.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, deleteAccess.toString());
+
+        return new ResponseEntity<>("Deleted", HttpStatus.OK);
+    }
+
+    @PostMapping(value = "/register", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> registerUser(@Valid @RequestBody UserRequest userRequest) {
+        log.info("START REGISTER TOKEN");
+        authService.register(userRequest);
+        return new ResponseEntity<>("Đăng ký thành công, Kiểm tra email để kích hoạt tài khoản!", HttpStatus.OK);
+    }
+
+    @GetMapping(value = "/verify")
+    public ResponseEntity<?> verifyAccount(@RequestParam String token) {
+        if(authService.checkValidToken(token)) {
+            return new ResponseEntity<>("Kích Hoạt Thành Công!", HttpStatus.OK);
+        } else {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Đã quá hạn kích hoạt tài khoản!"));
+        }
+    }
+
+    /**
+     * 
+     * @param response
+     * @param accessToken
+     * @param refreshToken
+     */
+    private void setTokenInCookie(HttpServletResponse response, String accessToken, String refreshToken) {
+        ResponseCookie accessCookie = setCookie(Constants.ACCESS_TOKEN, accessToken, false); // FE có thể đọc
+        ResponseCookie refreshCookie = setCookie(Constants.REFRESH_TOKEN, refreshToken, true); // HttpOnly
+
+        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+    }
+
+    /**
+     * Set token to cookie
+     * 
+     * @param tokenKey
+     * @param tokenValue
+     */
+    private ResponseCookie setCookie(String name, String value, boolean httpOnly) {
+        return ResponseCookie.from(name, value)
+                .httpOnly(httpOnly)
+                .secure(false) // local dev
+//                .sameSite("Lax")
+                .sameSite("None")
+                .path("/")
+                .maxAge(Duration.ofDays(7))
+                .build();
+    }
+}
