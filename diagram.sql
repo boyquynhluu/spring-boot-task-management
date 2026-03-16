@@ -15,7 +15,7 @@ CREATE TABLE `tbl_user` (
 
 CREATE TABLE `tbl_role` (
   `id` bigint PRIMARY KEY,
-  `name` varchar(50) UNIQUE,
+  `name` ENUM('ROLE_ADMIN','ROLE_USER') DEFAULT 'ROLE_USER',
   `description` varchar(255),
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -41,8 +41,23 @@ CREATE TABLE `tbl_audit_log` (
   `user_id` bigint
 );
 
+CREATE TABLE `tbl_refresh_token` (
+  `id` bigint PRIMARY KEY,
+  `refresh_token` varchar(250),
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `expiration_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `user_id` bigint
+);
+
+CREATE TABLE `tbl_verification_token` (
+  `id` bigint PRIMARY KEY,
+  `token` varchar(250),
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `expiration_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `user_id` bigint
+);
+
 ALTER TABLE `tbl_user` ADD FOREIGN KEY (`role_id`) REFERENCES `tbl_role` (`id`);
 ALTER TABLE `tbl_task` ADD FOREIGN KEY (`user_id`) REFERENCES `tbl_user` (`id`);
 ALTER TABLE `tbl_audit_log` ADD FOREIGN KEY (`user_id`) REFERENCES `tbl_user` (`id`);
-show index from tbl_user;
-
+ALTER TABLE `tbl_refresh_token` ADD FOREIGN KEY (`user_id`) REFERENCES `tbl_user` (`id`);
