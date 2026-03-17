@@ -61,3 +61,7 @@ ALTER TABLE `tbl_user` ADD FOREIGN KEY (`role_id`) REFERENCES `tbl_role` (`id`);
 ALTER TABLE `tbl_task` ADD FOREIGN KEY (`user_id`) REFERENCES `tbl_user` (`id`);
 ALTER TABLE `tbl_audit_log` ADD FOREIGN KEY (`user_id`) REFERENCES `tbl_user` (`id`);
 ALTER TABLE `tbl_refresh_token` ADD FOREIGN KEY (`user_id`) REFERENCES `tbl_user` (`id`);
+
+ALTER TABLE `tbl_user`
+ADD provider varchar(255),
+ADD provider_id varchar(255);
