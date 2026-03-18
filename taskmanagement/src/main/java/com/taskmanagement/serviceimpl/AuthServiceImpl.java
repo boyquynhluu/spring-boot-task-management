@@ -103,12 +103,12 @@ public class AuthServiceImpl implements AuthService {
             user.setCreatedAt (null);
             user.setStatus(UserStatus.INACTIVE);
             // Get Role Id
-            int roleUserId = roleRepository.findAll()
+            Long roleUserId = roleRepository.findAll()
                     .stream()
-                    .filter(role -> RoleName.ROLE_USER.name().equals(role.getName()))
+                    .filter(role -> RoleName.ROLE_USER.name().equals(role.getRoleName()))
                     .map(Role::getId)
                     .findFirst()
-                    .orElse(0);
+                    .orElse(null);
             user.setRoleId(roleUserId);
             
             userRepository.save(user);
@@ -162,13 +162,13 @@ public class AuthServiceImpl implements AuthService {
      */
     private boolean isWithin30Minutes(VerificationToken verificationToken) {
         LocalDateTime now = LocalDateTime.now();
-        Duration duration = Duration.between(verificationToken.getCreatedAt(), verificationToken.getExpiryDate());
+        Duration duration = Duration.between(verificationToken.getCreatedAt(), verificationToken.getExpirationAt());
 
         if (duration.toMinutes() <= 30) {
             // Kiểm tra xem createdAt có không phải là sau thời điểm hiện tại
             if (!verificationToken.getCreatedAt().isAfter(now)) {
                 // Kiểm tra xem expiryDate có không phải là trước thời điểm hiện tại
-                if (!verificationToken.getExpiryDate().isBefore(now)) {
+                if (!verificationToken.getExpirationAt().isBefore(now)) {
                     return true;
                 }
             }

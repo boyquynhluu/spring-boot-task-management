@@ -27,7 +27,7 @@ public class VerificationTokenServiceImpl implements VerificationTokenService {
             vt.setToken(token);
             vt.setUserId(user.getId());
             vt.setCreatedAt(LocalDateTime.now());
-            vt.setExpiryDate(vt.getCreatedAt().plusMinutes(30));
+            vt.setExpirationAt(vt.getCreatedAt().plusMinutes(30));
             tokenRepo.save(vt);
         } catch (Exception e) {
             log.error("Register Token Has Error: {}", e.getMessage(), e);

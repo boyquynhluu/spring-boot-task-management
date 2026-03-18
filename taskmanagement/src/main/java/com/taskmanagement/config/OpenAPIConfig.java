@@ -16,7 +16,7 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.servers.Server;
 
 @OpenAPIDefinition(
-        info = @Info(title = "Auth API", version = "1.0"),
+        info = @Info(title = "Public API", version = "1.0"),
         security = @SecurityRequirement(name = "bearerAuth")
 )
 @SecurityScheme(
@@ -47,8 +47,8 @@ public class OpenAPIConfig {
     @Bean
     public GroupedOpenApi publicApi() {
         return GroupedOpenApi.builder()
-                .group("Public API")
-                .pathsToMatch("/public/**")
+                .group("Public-API")
+                .pathsToMatch("/api/**")
                 .build();
     }
 }

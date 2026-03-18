@@ -10,5 +10,5 @@ import com.taskmanagement.entities.RefreshToken;
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Integer> {
 
     @Query(value = "SELECT * FROM tbl_refresh_token WHERE id=?1", nativeQuery = true)
-    RefreshToken findRefreshTokenById(int id);
+    RefreshToken findRefreshTokenById(Long id);
 }

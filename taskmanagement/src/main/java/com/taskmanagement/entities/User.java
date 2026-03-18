@@ -25,7 +25,7 @@ import lombok.experimental.FieldDefaults;
 public class User extends BaseEntity {
 
     @Id
-    int id;
+    Long id;
 
     @Column(name = "name")
     String name;
@@ -49,5 +49,5 @@ public class User extends BaseEntity {
     String providerId;
 
     @Column(name = "role_id")
-    int roleId;
+    Long roleId;
 }

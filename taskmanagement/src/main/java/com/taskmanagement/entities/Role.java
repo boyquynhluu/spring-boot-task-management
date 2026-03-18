@@ -1,5 +1,7 @@
 package com.taskmanagement.entities;
 
+import com.taskmanagement.enums.RoleName;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -23,11 +25,11 @@ import lombok.experimental.FieldDefaults;
 public class Role extends BaseEntity {
 
     @Id
-    int id;
+    Long id;
 
     @Column(name = "name")
     @Enumerated(EnumType.STRING)
-    String name;
+    RoleName roleName;
 
     @Column(name = "description")
     String description;
