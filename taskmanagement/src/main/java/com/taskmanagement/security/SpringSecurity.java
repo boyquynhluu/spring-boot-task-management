@@ -1,7 +1,6 @@
 package com.taskmanagement.security;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import org.springframework.context.annotation.Bean;
@@ -16,10 +15,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 import com.taskmanagement.security.jwt.JwtAuthenticationEntryPoint;
 import com.taskmanagement.security.jwt.JwtAuthenticationFilter;
 import com.taskmanagement.security.jwt.JwtTokenProvider;
+import com.taskmanagement.security.oauth2.OAuth2LoginSuccessHandler;
 import com.taskmanagement.serviceimpl.CustomUserDetailsService;
 
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,8 @@ public class SpringSecurity {
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService customUserDetailsService;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+    private final CorsConfigurationSource corsConfigurationSource;
 
     @Bean
     public static PasswordEncoder passwordEncoder() {
@@ -43,19 +46,7 @@ public class SpringSecurity {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        http.cors(cors -> cors.configurationSource(request -> {
-            CorsConfiguration config = new CorsConfiguration();
-            config.setAllowedOrigins(
-                    Arrays.asList(
-                        "http://localhost:3000",
-                        "https://quizapp-fe.vercel.app"
-                    )
-                );
-            config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE"));
-            config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
-            config.setAllowCredentials(true); // ✅ Bắt buộc có nếu bạn dùng localStorage hoặc Cookie
-            return config;
-        }));
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource));
 
         http.csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(authorize -> authorize
@@ -71,10 +62,11 @@ public class SpringSecurity {
                     "/swagger-ui.html"
                 ).permitAll()
             .requestMatchers("/resources/**", "/static/**", "/css/**", "/styles/**", "/js/**", "/img/**","/icon/**", "/images/**").permitAll()
-            .requestMatchers("/api/v1/quiz/**").hasAnyAuthority(USER_ROLES.toArray(new String[0]))
-            .requestMatchers("/api/v1/diem").hasAnyAuthority(USER_ROLES.toArray(new String[0]))
             .anyRequest().authenticated()
         )
+        .oauth2Login(oauth2 -> oauth2
+                .successHandler(oAuth2LoginSuccessHandler)
+         )
         .exceptionHandling(exception -> exception
                 .authenticationEntryPoint(jwtAuthenticationEntryPoint)
         )

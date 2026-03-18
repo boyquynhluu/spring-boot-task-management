@@ -27,7 +27,7 @@ import lombok.experimental.FieldDefaults;
 public class Task extends BaseEntity {
 
     @Id
-    int id;
+    Long id;
 
     @Column(name = "title", unique = true)
     String title;
@@ -43,5 +43,5 @@ public class Task extends BaseEntity {
     LocalDateTime deadline;
 
     @Column(name = "user_id")
-    int userId;
+    Long userId;
 }

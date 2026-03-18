@@ -1,4 +1,7 @@
 spring:
+  config:
+    import: optional:file:application-env.properties
+
   datasource:
     url: jdbc:mysql://localhost:3306/task_management_db
     username: root
@@ -21,7 +24,69 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MySQL8Dialect
+        dialect: org.hibernate.dialect.MySQLDialect
+  main:
+    banner-mode: console
+
+  #Setting Send Mail by Gmail
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: vanductai.dhv@gmail.com
+    password: bmrw jwzt ioat pqwo
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - openid
+              - profile
+              - email
+        provider:
+          google:
+            issuer-uri: https://accounts.google.com
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  messages:
+    encoding: UTF-8
+    basename: messages
+
+open:
+  api:
+    title: Public Service API
+    version: v1.0
+    description: Create By TaiVD
+    serverUrl: http://localhost:8081
+    serverName: Server Test API
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-milliseconds: 43200000
+    refresh:
+      expiration-milliseconds: 86400000
+  frontend:
+    url: http://localhost:3000
+
+logging:
+  level:
+    org.flywaydb: DEBUG
+    org.flywaydb.core: DEBUG
+    org.springframework.jdbc.datasource: DEBUG
 
 server:
   port: 8081

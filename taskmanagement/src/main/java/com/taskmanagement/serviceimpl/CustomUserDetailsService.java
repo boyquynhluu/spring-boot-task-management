@@ -50,7 +50,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
             // Get Role
             Role role = roleRepository.findRoleById(user.getRoleId());
-            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role.getName()));
+            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role.getRoleName().name()));
 
             return new org.springframework.security.core.userdetails.User(
                     usernameOrEmail,

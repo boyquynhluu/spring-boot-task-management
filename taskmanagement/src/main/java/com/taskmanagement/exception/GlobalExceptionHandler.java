@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.support.WebExchangeBindException;
 
-import reactor.core.publisher.Mono;
-
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -58,19 +56,5 @@ public class GlobalExceptionHandler {
         });
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
-    }
-
-    @ExceptionHandler(WebExchangeBindException.class)
-    public Mono<ResponseEntity<Map<String, String>>> handleValidation(
-            WebExchangeBindException ex) {
-
-        Map<String, String> errors = ex.getFieldErrors()
-                .stream()
-                .collect(Collectors.toMap(
-                        FieldError::getField,
-                        FieldError::getDefaultMessage
-                ));
-
-        return Mono.just(ResponseEntity.badRequest().body(errors));
     }
 }

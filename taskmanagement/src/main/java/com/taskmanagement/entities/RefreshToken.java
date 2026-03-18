@@ -23,7 +23,7 @@ import lombok.experimental.FieldDefaults;
 public class RefreshToken {
 
     @Id
-    int id;
+    Long id;
 
     @Column(name = "refresh_token")
     String token;
@@ -35,5 +35,5 @@ public class RefreshToken {
     LocalDateTime expirationAt;
 
     @Column(name = "user_id")
-    int userId;
+    Long userId;
 }

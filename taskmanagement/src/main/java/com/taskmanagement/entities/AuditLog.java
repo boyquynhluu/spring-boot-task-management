@@ -27,7 +27,7 @@ import lombok.experimental.FieldDefaults;
 public class AuditLog {
 
     @Id
-    int id;
+    Long id;
 
     @Column(name = "action")
     @Enumerated(EnumType.STRING)
@@ -43,5 +43,5 @@ public class AuditLog {
     LocalDateTime createdAt;
 
     @Column(name = "user_id")
-    int userId;
+    Long userId;
 }

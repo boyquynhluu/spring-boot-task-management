@@ -23,7 +23,7 @@ import lombok.experimental.FieldDefaults;
 public class VerificationToken {
 
     @Id
-    int id;
+    Long id;
 
     @Column(name = "token", unique = true)
     String token;
@@ -31,9 +31,9 @@ public class VerificationToken {
     @Column(name = "created_at", nullable = false)
     LocalDateTime createdAt;
 
-    @Column(name = "expiry_date", nullable = false)
-    LocalDateTime expiryDate;
+    @Column(name = "expiration_at", nullable = false)
+    LocalDateTime expirationAt;
 
     @Column(name = "user_id")
-    int userId;
+    Long userId;
 }

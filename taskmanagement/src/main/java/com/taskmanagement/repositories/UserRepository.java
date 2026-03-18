@@ -13,10 +13,10 @@ import com.taskmanagement.entities.User;
 public interface UserRepository extends JpaRepository<User, Integer> {
 
     @Query(value = "SELECT MAX(id) FROM tbl_user", nativeQuery = true)
-    int getMaxId();
+    Long getMaxId();
 
     @Query(value = "SELECT * FROM tbl_user WHERE id=?1", nativeQuery = true)
-    User findUserById(int id);
+    User findUserById(Long id);
 
     Optional<User> findByProviderAndProviderId(String provider, String providerId);
 
