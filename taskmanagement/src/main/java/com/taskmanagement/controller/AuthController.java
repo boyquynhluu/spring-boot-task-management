@@ -46,9 +46,9 @@ public class AuthController {
     @PostMapping(value = "/login")
     public ResponseEntity<AuthResponse> authenticate(@RequestBody AuthRequest authRequest, HttpServletRequest request,
             HttpServletResponse response) {
-        log.info("START LOGIN CONTROLLER");
 
-        // Generate Token
+        log.info("START LOGIN CONTROLLER");
+        // Generate accessToken and refreshToken
         AuthResponse authResponse = authService.auth(authRequest);
 
         // Register Refresh Token
@@ -57,8 +57,8 @@ public class AuthController {
         // Set Token in cookie
         this.setTokenInCookie(response, authResponse.getAccessToken(), authResponse.getRefreshToken());
 
-        AuthResponse jwtAuthResponse = new AuthResponse();
-        jwtAuthResponse.setAccessToken(authResponse.getAccessToken());
+        AuthResponse jwtAuthResponse =
+                new AuthResponse(authResponse.getAccessToken(), authResponse.getRefreshToken(), authResponse.getTokenType());
 
         return ResponseEntity.ok(jwtAuthResponse);
     }
@@ -131,10 +131,14 @@ public class AuthController {
         return new ResponseEntity<>("Deleted", HttpStatus.OK);
     }
 
-    @PostMapping(value = "/register", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/register",
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> registerUser(@Valid @RequestBody UserRequest userRequest) {
+
         log.info("START REGISTER TOKEN");
         authService.register(userRequest);
+
         return new ResponseEntity<>("Đăng ký thành công, Kiểm tra email để kích hoạt tài khoản!", HttpStatus.OK);
     }
 
@@ -149,34 +153,23 @@ public class AuthController {
         }
     }
 
-    /**
-     * 
-     * @param response
-     * @param accessToken
-     * @param refreshToken
-     */
     private void setTokenInCookie(HttpServletResponse response, String accessToken, String refreshToken) {
-        ResponseCookie accessCookie = setCookie(Constants.ACCESS_TOKEN, accessToken, false); // FE có thể đọc
-        ResponseCookie refreshCookie = setCookie(Constants.REFRESH_TOKEN, refreshToken, true); // HttpOnly
+        // Access token: 15 phút
+        ResponseCookie accessCookie = setCookie(Constants.ACCESS_TOKEN, accessToken, false, Duration.ofMinutes(15));
+        // Refresh token: 30 ngày
+        ResponseCookie refreshCookie = setCookie(Constants.REFRESH_TOKEN, refreshToken, true, Duration.ofDays(30));
 
         response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
     }
 
-    /**
-     * Set token to cookie
-     * 
-     * @param tokenKey
-     * @param tokenValue
-     */
-    private ResponseCookie setCookie(String name, String value, boolean httpOnly) {
+    private ResponseCookie setCookie(String name, String value, boolean httpOnly, Duration maxAge) {
         return ResponseCookie.from(name, value)
                 .httpOnly(httpOnly)
-                .secure(false) // local dev
-//                .sameSite("Lax")
-                .sameSite("None")
+                .secure(false) // local dev, production nên để true
+                .sameSite("None") // nếu FE và BE khác domain
                 .path("/")
-                .maxAge(Duration.ofDays(7))
+                .maxAge(maxAge)
                 .build();
     }
 }

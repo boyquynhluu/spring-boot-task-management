@@ -1,13 +1,20 @@
 package com.taskmanagement.security.oauth2;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.Optional;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
+import com.taskmanagement.constants.Constants;
 import com.taskmanagement.dto.AuthResponse;
 import com.taskmanagement.entities.User;
 import com.taskmanagement.repositories.UserRepository;
@@ -24,7 +31,7 @@ import lombok.RequiredArgsConstructor;
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final UserRepository userRepository;
-    private final JwtTokenProvider jwtUtil;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -37,35 +44,56 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         OAuth2User oauthUser = token.getPrincipal();
 
         String providerId = oauthUser.getAttribute("sub");
-        String email = oauthUser.getAttribute("email");
         String name = oauthUser.getAttribute("name");
+        String emailOauth2 = oauthUser.getAttribute("email");
 
-        User user = userRepository.findByProviderAndProviderId(provider, providerId).orElseGet(() -> {
+        // Check exist email
+        User user = userRepository.getUserByEmail(emailOauth2);
+        if(Objects.isNull(user)) {
             User u = new User();
+            u.setId(userRepository.getMaxId() + 1);
+            u.setName(name);
+            u.setEmail(emailOauth2);
             u.setProvider(provider);
             u.setProviderId(providerId);
-            u.setEmail(email);
-            u.setName(name);
-            return userRepository.save(u);
-        });
+            u.setCreatedAt(LocalDateTime.now());
+            u.setUpdatedAt(LocalDateTime.now());
+            // save User
+            userRepository.save(u);
 
-        AuthResponse auth = jwtUtil.generateTokenOtherLocal(user);
+            user = u;
+        } else {
+            user.setProvider(provider);
+            user.setProviderId(providerId);
+            user.setUpdatedAt(LocalDateTime.now());
+            // save User
+            userRepository.save(user);
+        }
 
-        addCookie(response, "access_token", auth.getAccessToken(), 60 * 15);
-        addCookie(response, "refresh_token", auth.getRefreshToken(), 60 * 60 * 24 * 30);
+        AuthResponse auth = jwtTokenProvider.generateTokenOtherLocal(user);
 
-        response.sendRedirect("http://localhost:3000");
+        this.setTokenInCookie(response, auth.getAccessToken(), auth.getRefreshToken());
+
+        response.sendRedirect("http://localhost:3000/dashboard");
     }
 
-    private void addCookie(HttpServletResponse response, String name, String value, int maxAge) {
+    private void setTokenInCookie(HttpServletResponse response, String accessToken, String refreshToken) {
+        // Access token: 15 phút
+        ResponseCookie accessCookie = setCookie(Constants.ACCESS_TOKEN, accessToken, false, Duration.ofMinutes(15));
+        // Refresh token: 30 ngày
+        ResponseCookie refreshCookie = setCookie(Constants.REFRESH_TOKEN, refreshToken, true, Duration.ofDays(30));
 
-        Cookie cookie = new Cookie(name, value);
+        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+    }
 
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false);
-        cookie.setPath("/");
-        cookie.setMaxAge(maxAge);
-
-        response.addCookie(cookie);
+    private ResponseCookie setCookie(String name, String value, boolean httpOnly, Duration maxAge) {
+        return ResponseCookie.from(name, value)
+                .httpOnly(httpOnly)
+                .secure(false) // local dev, production nên để true
+                .sameSite("None") // nếu FE và BE khác domain
+                .path("/")
+                .maxAge(maxAge)
+                .build();
     }
 }

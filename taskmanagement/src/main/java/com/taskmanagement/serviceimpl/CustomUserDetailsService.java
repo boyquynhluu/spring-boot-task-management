@@ -29,6 +29,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String usernameOrEmail) {
+
         try {
             User user;
             if (usernameOrEmail.contains("@")) {

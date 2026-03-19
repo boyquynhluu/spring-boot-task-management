@@ -62,8 +62,8 @@ spring:
       port: 6379
 
   messages:
-    encoding: UTF-8
     basename: messages
+    encoding: UTF-8
 
 open:
   api:

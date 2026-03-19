@@ -7,10 +7,12 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -57,17 +59,32 @@ public class AuthServiceImpl implements AuthService {
             log.info("Start Authen: {}", login);
 
             // Get username or email
-            String userRequest = login.getUsernameOrEmail();
+            String usernameOrEmail = login.getUsernameOrEmail();
 
-            // Get fullname
-            String name = userRequest.contains("@") ?
-                    userRepository.getFullnameByEmail(userRequest) :
-                    userRepository.getFullnameByUsername(userRequest);
+            User user;
+            if (usernameOrEmail.contains("@")) {
+                user = userRepository.findByEmail(usernameOrEmail).orElseThrow(
+                        () -> new UsernameNotFoundException("User not found with email: " + usernameOrEmail));
+            } else {
+                user = userRepository.findByUsername(usernameOrEmail)
+                        .orElseThrow(() -> new UsernameNotFoundException("User not exist by Username or Email"));
+            }
+
+            // Check Status
+            String status = user.getStatus().name();
+            if(status.equals(UserStatus.INACTIVE.name())) {
+                throw new DisabledException("Tài khoản chưa được kích hoạt!");
+            }
+            if(status.equals(UserStatus.BANNED.name())) {
+                throw new DisabledException("Tài Khoản Đã Bị Khóa!");
+            }
 
             Authentication authentication = authenticationManager
-                    .authenticate(new UsernamePasswordAuthenticationToken(userRequest, login.getPassword()));
+                    .authenticate(new UsernamePasswordAuthenticationToken(usernameOrEmail, login.getPassword()));
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
+            // Get user name
+            String name = user.getName();
             // Generate Access Token
             String accessToken = jwtTokenProvider.generateAccessToken(authentication, name);
             // Generate Refresh Token
@@ -85,6 +102,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void register(UserRequest userRequest) {
+
         try {
             log.info("START REGISTER USER");
             if (userRepository.existsByUsername(userRequest.getUsername())
@@ -94,23 +112,25 @@ public class AuthServiceImpl implements AuthService {
 
             // Create user
             User user = new User();
-            user.setId(userRepository.getMaxId() + 1);
+            // Get Max ID
+            Long maxId = userRepository.getMaxId();
+            user.setId(maxId == null ? 1 : maxId + 1);
             user.setName(userRequest.getName());
             user.setUsername(userRequest.getUsername());
             user.setEmail(userRequest.getEmail());
             user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
-            user.setCreatedAt (LocalDateTime.now());
-            user.setCreatedAt (null);
+            user.setCreatedAt(LocalDateTime.now());
+            user.setUpdatedAt(null);
             user.setStatus(UserStatus.INACTIVE);
             // Get Role Id
             Long roleUserId = roleRepository.findAll()
                     .stream()
-                    .filter(role -> RoleName.ROLE_USER.name().equals(role.getRoleName()))
+                    .filter(role -> RoleName.ROLE_USER.name().equals(role.getRoleName().name()))
                     .map(Role::getId)
                     .findFirst()
                     .orElse(null);
             user.setRoleId(roleUserId);
-            
+
             userRepository.save(user);
 
             // tạo token verify
@@ -143,6 +163,7 @@ public class AuthServiceImpl implements AuthService {
 
             User user = userRepository.findUserById(verificationToken.getId());
             user.setStatus(UserStatus.ACTIVE);
+            user.setUpdatedAt(LocalDateTime.now());
             userRepository.save(user);
 
             // Delete

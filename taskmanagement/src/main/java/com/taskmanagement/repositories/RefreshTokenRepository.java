@@ -9,6 +9,9 @@ import com.taskmanagement.entities.RefreshToken;
 @Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Integer> {
 
+    @Query(value = "SELECT MAX(id) FROM tbl_refresh_token", nativeQuery = true)
+    Long getMaxId();
+
     @Query(value = "SELECT * FROM tbl_refresh_token WHERE id=?1", nativeQuery = true)
     RefreshToken findRefreshTokenById(Long id);
 }

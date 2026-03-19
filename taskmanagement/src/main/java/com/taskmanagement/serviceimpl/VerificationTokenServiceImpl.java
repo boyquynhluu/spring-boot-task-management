@@ -17,22 +17,25 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j(topic = "VerificationTokenServiceImpl")
 public class VerificationTokenServiceImpl implements VerificationTokenService {
 
-    private final VerificationTokenRepository tokenRepo;
+    private final VerificationTokenRepository verificationTokenRepository;
 
     @Override
     public void saveTokenRegister(User user, String token) {
+
         try {
             log.info("Start Register Token");
             VerificationToken vt = new VerificationToken();
+            // Get Max ID
+            Long maxId = verificationTokenRepository.getMaxId();
+            vt.setId(maxId == null ? 1 : maxId + 1);
             vt.setToken(token);
             vt.setUserId(user.getId());
             vt.setCreatedAt(LocalDateTime.now());
             vt.setExpirationAt(vt.getCreatedAt().plusMinutes(30));
-            tokenRepo.save(vt);
+            verificationTokenRepository.save(vt);
         } catch (Exception e) {
             log.error("Register Token Has Error: {}", e.getMessage(), e);
             throw e;
         }
     }
-
 }

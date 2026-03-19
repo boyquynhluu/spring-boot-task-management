@@ -50,6 +50,9 @@ public class UserServiceImpl implements UserService {
             }
 
             RefreshToken refreshToken = new RefreshToken();
+            // Get max id
+            Long maxId = refreshTokenRepository.getMaxId();
+            refreshToken.setId(maxId == null ? 1 : maxId + 1);
             refreshToken.setToken(token);
             refreshToken.setCreatedAt(LocalDateTime.now());
             refreshToken.setExpirationAt(formatLocalDateTime());
