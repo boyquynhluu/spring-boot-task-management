@@ -44,7 +44,7 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping(value = "/login")
-    public ResponseEntity<AuthResponse> authenticate(@RequestBody AuthRequest authRequest, HttpServletRequest request,
+    public ResponseEntity<?> authenticate(@RequestBody AuthRequest authRequest, HttpServletRequest request,
             HttpServletResponse response) {
 
         log.info("START LOGIN CONTROLLER");
@@ -57,10 +57,7 @@ public class AuthController {
         // Set Token in cookie
         this.setTokenInCookie(response, authResponse.getAccessToken(), authResponse.getRefreshToken());
 
-        AuthResponse jwtAuthResponse =
-                new AuthResponse(authResponse.getAccessToken(), authResponse.getRefreshToken(), authResponse.getTokenType());
-
-        return ResponseEntity.ok(jwtAuthResponse);
+        return ResponseEntity.ok(HttpStatus.OK);
     }
 
     @PostMapping("/refresh")
@@ -128,34 +125,35 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE, deleteRefresh.toString());
         response.addHeader(HttpHeaders.SET_COOKIE, deleteAccess.toString());
 
-        return new ResponseEntity<>("Deleted", HttpStatus.OK);
+        return new ResponseEntity<>("Logout", HttpStatus.OK);
     }
 
     @PostMapping(value = "/register",
             produces = MediaType.APPLICATION_JSON_VALUE,
             consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> registerUser(@Valid @RequestBody UserRequest userRequest) {
+    public Map<String, Object> registerUser(@Valid @RequestBody UserRequest userRequest) {
 
         log.info("START REGISTER TOKEN");
         authService.register(userRequest);
 
-        return new ResponseEntity<>("Đăng ký thành công, Kiểm tra email để kích hoạt tài khoản!", HttpStatus.OK);
+        return Map.of("message", "Đăng ký thành công, Kiểm tra email để kích hoạt tài khoản!");
     }
 
     @GetMapping(value = "/verify")
-    public ResponseEntity<?> verifyAccount(@RequestParam String token) {
+    public Map<String, Object> verifyAccount(@RequestParam String token) {
         if(authService.checkValidToken(token)) {
-            return new ResponseEntity<>("Kích Hoạt Thành Công!", HttpStatus.OK);
+            return Map.of("Kích Hoạt Thành Công!", HttpStatus.OK);
         } else {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Đã quá hạn kích hoạt tài khoản!"));
+            return Map.of(
+                    "status", HttpStatus.INTERNAL_SERVER_ERROR,
+                    "message", "Đã quá hạn kích hoạt tài khoản!"
+                    );
         }
     }
 
     private void setTokenInCookie(HttpServletResponse response, String accessToken, String refreshToken) {
         // Access token: 15 phút
-        ResponseCookie accessCookie = setCookie(Constants.ACCESS_TOKEN, accessToken, false, Duration.ofMinutes(15));
+        ResponseCookie accessCookie = setCookie(Constants.ACCESS_TOKEN, accessToken, true, Duration.ofMinutes(15));
         // Refresh token: 30 ngày
         ResponseCookie refreshCookie = setCookie(Constants.REFRESH_TOKEN, refreshToken, true, Duration.ofDays(30));
 
@@ -167,7 +165,8 @@ public class AuthController {
         return ResponseCookie.from(name, value)
                 .httpOnly(httpOnly)
                 .secure(false) // local dev, production nên để true
-                .sameSite("None") // nếu FE và BE khác domain
+                .sameSite("None")
+                .secure(false)
                 .path("/")
                 .maxAge(maxAge)
                 .build();

@@ -74,7 +74,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         this.setTokenInCookie(response, auth.getAccessToken(), auth.getRefreshToken());
 
-        response.sendRedirect("http://localhost:3000/dashboard");
+        response.sendRedirect("http://localhost:3000/home");
     }
 
     private void setTokenInCookie(HttpServletResponse response, String accessToken, String refreshToken) {

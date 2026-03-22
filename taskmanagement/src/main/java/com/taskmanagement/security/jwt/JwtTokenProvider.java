@@ -156,6 +156,17 @@ public class JwtTokenProvider {
     }
 
     // Get refresh token
+    public String getAccessTokenFromCookie(HttpServletRequest request) {
+        if (request.getCookies() == null) return null;
+
+        return Arrays.stream(request.getCookies())
+                .filter(c -> "accessToken".equals(c.getName()))
+                .map(Cookie::getValue)
+                .findFirst()
+                .orElse(null);
+    }
+
+    // Get refresh token
     public String getRefreshTokenFromCookie(HttpServletRequest request) {
         if (request.getCookies() == null) return null;
 
