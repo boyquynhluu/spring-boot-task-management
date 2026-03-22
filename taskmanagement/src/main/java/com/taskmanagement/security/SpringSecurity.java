@@ -49,6 +49,9 @@ public class SpringSecurity {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource));
 
         http.csrf(csrf -> csrf.disable())
+        .formLogin(form -> form.disable())
+        .httpBasic(basic -> basic.disable())
+
         .authorizeHttpRequests(authorize -> authorize
             .requestMatchers("/api/auth/**").permitAll()
             .requestMatchers("/actuator/**").permitAll()

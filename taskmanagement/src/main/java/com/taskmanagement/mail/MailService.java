@@ -37,7 +37,7 @@ public class MailService {
      * @param user
      * @param token
      */
-    @Async
+    @Async("asyncExecutor")
     public void sendVerificationEmail(User user, String token) {
 
         if(Objects.isNull(user)) {

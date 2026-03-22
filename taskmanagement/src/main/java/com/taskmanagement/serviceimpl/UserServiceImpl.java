@@ -5,12 +5,14 @@ import java.time.ZoneId;
 import java.util.Date;
 import java.util.Objects;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.taskmanagement.constants.Constants;
+import com.taskmanagement.dto.UserResponse;
 import com.taskmanagement.entities.RefreshToken;
 import com.taskmanagement.entities.User;
 import com.taskmanagement.repositories.RefreshTokenRepository;
@@ -33,6 +35,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final ModelMapper mapper;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -80,6 +83,24 @@ public class UserServiceImpl implements UserService {
         if (!Objects.isNull(refreshToken)) {
             refreshTokenRepository.delete(refreshToken);
         }
+    }
+
+    @Override
+    public UserResponse getUser(String usernameOrEmail) {
+        try {
+            User user;
+            if (usernameOrEmail.contains("@")) {
+                user = userRepository.findByEmail(usernameOrEmail).orElseThrow(
+                        () -> new UsernameNotFoundException("User not found with email: " + usernameOrEmail));
+            } else {
+                user = userRepository.findByUsername(usernameOrEmail)
+                        .orElseThrow(() -> new UsernameNotFoundException("User not exist by Username or Email"));
+            }
+            return mapper.map(user, UserResponse.class);
+        } catch (Exception e) {
+            log.error("Find User error: {}", e.getMessage(), e);
+        }
+        return null;
     }
 
     /**
