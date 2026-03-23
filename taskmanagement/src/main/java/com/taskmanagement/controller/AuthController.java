@@ -70,16 +70,17 @@ public class AuthController {
         }
         // validate refreshToken
         jwtTokenProvider.validateToken(refreshToken);
-        // Lấy username từ token
-        String username = jwtTokenProvider.getUsername(refreshToken);
+        // Lấy email from token
+        String email = jwtTokenProvider.getEmailFromToken(refreshToken);
 
         // Lấy thông tin user từ DB
-        UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
 
         // Tạo access token mới
         String newAccessToken = jwtTokenProvider.generateAccessToken(
                 new UsernamePasswordAuthenticationToken(userDetails.getUsername(), null, userDetails.getAuthorities()),
-                userDetails.getUsername());
+                userService.getUserByEmail(email)
+                );
 
         // Set Token in cookie
         this.setTokenInCookie(response, newAccessToken, refreshToken);
@@ -97,7 +98,7 @@ public class AuthController {
         String refreshToken = jwtTokenProvider.getRefreshTokenFromCookie(request);
         if (refreshToken != null) {
             try {
-                String username = jwtTokenProvider.getUsername(refreshToken);
+                String username = jwtTokenProvider.getEmailFromToken(refreshToken);
                 userService.deleteByRefreshToken(username);
                 log.info("Logout success for user: {}", username);
             } catch (Exception e) {
@@ -107,25 +108,24 @@ public class AuthController {
             log.warn("No refresh token found in cookie");
         }
 
-        // Xóa cả refresh token và access token cookie
-        ResponseCookie deleteRefresh = ResponseCookie.from(Constants.REFRESH_TOKEN, "")
-                .httpOnly(true)
-                .secure(false) // Dev false, Prod true
-                .path("/")
-                .maxAge(0)
-                .build();
+        // Delete access token from cookie
+        ResponseCookie deleteAccess = this.setCookie(
+                Constants.ACCESS_TOKEN,
+                Constants.ACCESS_TOKEN_BLANK,
+                Boolean.TRUE, Duration.ZERO
+                );
 
-        ResponseCookie deleteAccess = ResponseCookie.from(Constants.ACCESS_TOKEN, "")
-                .httpOnly(false) // access token FE có thể đọc
-                .secure(false)
-                .path("/")
-                .maxAge(0)
-                .build();
+        // Delete refresh token from cookie
+        ResponseCookie deleteRefresh = this.setCookie(Constants.REFRESH_TOKEN,
+                Constants.REFRESH_TOKEN_BLANK,
+                Boolean.TRUE,
+                Duration.ZERO
+                );
 
         response.addHeader(HttpHeaders.SET_COOKIE, deleteRefresh.toString());
         response.addHeader(HttpHeaders.SET_COOKIE, deleteAccess.toString());
 
-        return new ResponseEntity<>("Logout", HttpStatus.OK);
+        return new ResponseEntity<>("Logout Success", HttpStatus.OK);
     }
 
     @PostMapping(value = "/register",
@@ -152,10 +152,10 @@ public class AuthController {
     }
 
     private void setTokenInCookie(HttpServletResponse response, String accessToken, String refreshToken) {
-        // Access token: 15 phút
+        // Access token: 15 minute
         ResponseCookie accessCookie = setCookie(Constants.ACCESS_TOKEN, accessToken, true, Duration.ofMinutes(15));
-        // Refresh token: 30 ngày
-        ResponseCookie refreshCookie = setCookie(Constants.REFRESH_TOKEN, refreshToken, true, Duration.ofDays(30));
+        // Refresh token: 30 minute
+        ResponseCookie refreshCookie = setCookie(Constants.REFRESH_TOKEN, refreshToken, true, Duration.ofMinutes(30));
 
         response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());

@@ -21,7 +21,6 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.Cookie;
@@ -53,8 +52,8 @@ public class JwtTokenProvider {
      * @param fullName
      * @return
      */
-    public String generateAccessToken(Authentication authentication, String fullName) {
-        return generateToken(authentication, fullName, jwtExpirationDate);
+    public String generateAccessToken(Authentication authentication, User user) {
+        return generateToken(authentication, user, jwtExpirationDate);
     }
 
     /**
@@ -64,8 +63,8 @@ public class JwtTokenProvider {
      * @param fullName
      * @return
      */
-    public String generateRefreshToken(Authentication authentication, String fullName) {
-        return generateToken(authentication, fullName, jwtRefreshExpirationDate);
+    public String generateRefreshToken(Authentication authentication, User user) {
+        return generateToken(authentication, user, jwtRefreshExpirationDate);
     }
 
     /**
@@ -78,8 +77,8 @@ public class JwtTokenProvider {
         Date now = new Date();
 
         String accessToken = Jwts.builder()
-                .setSubject(String.valueOf(user.getId()))
-                .claim("email", user.getEmail())
+                .setSubject(user.getEmail())
+                .claim(CLAIM_FULL_NAME, user.getName())
                 .claim("type", "ACCESS")
                 .setIssuedAt(now)
                 .setExpiration(new Date(now.getTime() + jwtExpirationDate))
@@ -87,7 +86,8 @@ public class JwtTokenProvider {
                 .compact();
 
         String refreshToken = Jwts.builder()
-                .setSubject(String.valueOf(user.getId()))
+                .setSubject(user.getEmail())
+                .claim(CLAIM_FULL_NAME, user.getName())
                 .claim("type", "REFRESH")
                 .setIssuedAt(now)
                 .setExpiration(new Date(now.getTime() + jwtRefreshExpirationDate))
@@ -103,16 +103,16 @@ public class JwtTokenProvider {
      * @param authentication
      * @return token
      */
-    private String generateToken(Authentication authentication, String fullName, Long expireDateAccessOrRefresh) {
-        String username = authentication.getName();
+    private String generateToken(Authentication authentication, User user, Long expireDateAccessOrRefresh) {
+        log.info("START GENERATE TOKEN");
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
 
         Date currentDate = new Date();
         Date expireDate = new Date(currentDate.getTime() + expireDateAccessOrRefresh);
 
         return Jwts.builder()
-                .setSubject(username)
-                .claim(CLAIM_FULL_NAME, fullName)
+                .setSubject(user.getEmail())
+                .claim(CLAIM_FULL_NAME, user.getName())
                 .claim(CLAIM_AUTHORITIES, authorities.stream()
                         .map(GrantedAuthority::getAuthority)
                         .collect(Collectors.toList()))
@@ -126,8 +126,8 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
     }
 
-    // get username from Jwt token
-    public String getUsername(String token) {
+    // get email from Jwt token
+    public String getEmailFromToken(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(key())
                 .build()

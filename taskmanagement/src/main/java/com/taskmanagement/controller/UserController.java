@@ -39,7 +39,7 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        var user = userService.getUser(jwtTokenProvider.getUsername(accessToken));
+        var user = userService.getUser(jwtTokenProvider.getEmailFromToken(accessToken));
 
         return ResponseEntity.ok(user); // 👈 trả thẳng user cho FE
     }

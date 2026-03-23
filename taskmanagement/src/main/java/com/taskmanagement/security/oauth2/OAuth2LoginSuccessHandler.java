@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -21,7 +20,6 @@ import com.taskmanagement.repositories.UserRepository;
 import com.taskmanagement.security.jwt.JwtTokenProvider;
 
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +35,8 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) throws IOException, ServletException {
 
+        // Link config https://console.cloud.google.com/apis/credentials
+        // http://localhost:8081/login/oauth2/code/google
         OAuth2AuthenticationToken token = (OAuth2AuthenticationToken) authentication;
 
         String provider = token.getAuthorizedClientRegistrationId().toUpperCase();
@@ -74,14 +74,14 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         this.setTokenInCookie(response, auth.getAccessToken(), auth.getRefreshToken());
 
-        response.sendRedirect("http://localhost:3000/home");
+        response.sendRedirect("http://localhost:3000/oauth2/success");
     }
 
     private void setTokenInCookie(HttpServletResponse response, String accessToken, String refreshToken) {
-        // Access token: 15 phút
+        // Access token: 15 minute
         ResponseCookie accessCookie = setCookie(Constants.ACCESS_TOKEN, accessToken, true, Duration.ofMinutes(15));
-        // Refresh token: 30 ngày
-        ResponseCookie refreshCookie = setCookie(Constants.REFRESH_TOKEN, refreshToken, true, Duration.ofDays(30));
+        // Refresh token: 30 minute
+        ResponseCookie refreshCookie = setCookie(Constants.REFRESH_TOKEN, refreshToken, true, Duration.ofMinutes(30));
 
         response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
@@ -90,9 +90,10 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     private ResponseCookie setCookie(String name, String value, boolean httpOnly, Duration maxAge) {
         return ResponseCookie.from(name, value)
                 .httpOnly(httpOnly)
-                .secure(false) // local dev
                 .sameSite("Lax") // ✅ FIX
+                .secure(false) // local dev
                 .path("/")
+                .domain("localhost")
                 .maxAge(maxAge)
                 .build();
     }

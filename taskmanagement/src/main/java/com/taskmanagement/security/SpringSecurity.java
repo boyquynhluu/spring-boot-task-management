@@ -53,9 +53,14 @@ public class SpringSecurity {
         .httpBasic(basic -> basic.disable())
 
         .authorizeHttpRequests(authorize -> authorize
-            .requestMatchers("/api/auth/**").permitAll()
+//            .requestMatchers("/api/auth/**").permitAll()
             .requestMatchers("/actuator/**").permitAll()
             .requestMatchers("/uploads/**").permitAll()
+            .requestMatchers(
+                    "/api/auth/**",
+                    "/oauth2/**",
+                    "/login/oauth2/**"
+                ).permitAll()
             .requestMatchers(
                     "/api/auth/**",
                     "/actuator/**",

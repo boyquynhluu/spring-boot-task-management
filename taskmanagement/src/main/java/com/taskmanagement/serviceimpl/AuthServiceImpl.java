@@ -61,7 +61,7 @@ public class AuthServiceImpl implements AuthService {
             // Get username or email
             String usernameOrEmail = login.getUsernameOrEmail();
 
-            User user;
+            User user = null;
             if (usernameOrEmail.contains("@")) {
                 user = userRepository.findByEmail(usernameOrEmail).orElseThrow(
                         () -> new UsernameNotFoundException("User not found with email: " + usernameOrEmail));
@@ -83,12 +83,10 @@ public class AuthServiceImpl implements AuthService {
                     .authenticate(new UsernamePasswordAuthenticationToken(usernameOrEmail, login.getPassword()));
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // Get user name
-            String name = user.getName();
             // Generate Access Token
-            String accessToken = jwtTokenProvider.generateAccessToken(authentication, name);
+            String accessToken = jwtTokenProvider.generateAccessToken(authentication, user);
             // Generate Refresh Token
-            String refreshToken = jwtTokenProvider.generateRefreshToken(authentication, name);
+            String refreshToken = jwtTokenProvider.generateRefreshToken(authentication, user);
 
             return new AuthResponse(accessToken, refreshToken, Constants.BEARER_TOKEN);
         } catch (BadCredentialsException ex) {

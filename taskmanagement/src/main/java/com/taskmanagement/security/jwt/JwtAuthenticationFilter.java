@@ -38,6 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
         // ✅ Bỏ qua các path không cần kiểm tra token
         if (uri.startsWith("/api/auth/")||
+                uri.startsWith("/oauth2") ||
                 uri.equals("/api/auth/logout") ||
                 uri.equals("/api/auth/refresh") ||
                 uri.equals("/api/auth/register") ||
@@ -54,8 +55,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (StringUtils.hasText(token)) {
                 jwtTokenProvider.validateToken(token); // ném lỗi nếu có
 
-                String username = jwtTokenProvider.getUsername(token);
-                UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+                String email = jwtTokenProvider.getEmailFromToken(token);
+                UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
 
                 UsernamePasswordAuthenticationToken authenticationToken =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

@@ -25,7 +25,7 @@ public class RefreshToken {
     @Id
     Long id;
 
-    @Column(name = "refresh_token")
+    @Column(name = "refresh_token", columnDefinition = "TEXT")
     String token;
 
     @Column(name = "created_at")
