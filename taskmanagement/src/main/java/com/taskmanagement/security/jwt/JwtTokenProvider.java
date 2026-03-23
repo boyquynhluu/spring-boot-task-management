@@ -140,18 +140,14 @@ public class JwtTokenProvider {
     public void validateToken(String token) {
         try {
             Jwts.parserBuilder()
-            .setSigningKey(key())
-            .build()
-            .parseClaimsJws(cleanToken(token)); // ✅ kiểm tra chữ ký luôn
-        } catch (MalformedJwtException e) {
-            log.error("Invalid JWT token: {}", e);
+                    .setSigningKey(key())
+                    .build()
+                    .parseClaimsJws(cleanToken(token));
         } catch (ExpiredJwtException e) {
-            log.error("JWT token is expired: {}", e.getMessage(), e);
             throw new CustomException("JWT expired", HttpStatus.UNAUTHORIZED);
-        } catch (JwtException e) {
+        } catch (JwtException | IllegalArgumentException e) {
+            // 👈 gom hết lỗi token
             throw new CustomException("Invalid JWT", HttpStatus.UNAUTHORIZED);
-        } catch (IllegalArgumentException e) {
-            log.error("JWT claims string is empty: {}", e);
         }
     }
 
