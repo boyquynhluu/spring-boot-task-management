@@ -37,6 +37,7 @@ public class Constants {
     public static final String REQUEST_REFRESH_TOKEN = "refreshToken";
     public static final String YYYY_MM_DD_HH_MM_SS = "yyyy-MM-dd HH:mm:ss";
     public static final String ACCESS_TOKEN = "accessToken";
+    public static final String ACCESS_TOKEN_BLANK = "";
     public static final String REFRESH_TOKEN = "refreshToken";
     public static final String REFRESH_TOKEN_BLANK = "";
 }
