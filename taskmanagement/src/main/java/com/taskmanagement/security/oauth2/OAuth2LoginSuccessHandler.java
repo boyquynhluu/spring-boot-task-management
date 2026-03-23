@@ -79,7 +79,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private void setTokenInCookie(HttpServletResponse response, String accessToken, String refreshToken) {
         // Access token: 15 phút
-        ResponseCookie accessCookie = setCookie(Constants.ACCESS_TOKEN, accessToken, false, Duration.ofMinutes(15));
+        ResponseCookie accessCookie = setCookie(Constants.ACCESS_TOKEN, accessToken, true, Duration.ofMinutes(15));
         // Refresh token: 30 ngày
         ResponseCookie refreshCookie = setCookie(Constants.REFRESH_TOKEN, refreshToken, true, Duration.ofDays(30));
 
@@ -90,8 +90,8 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     private ResponseCookie setCookie(String name, String value, boolean httpOnly, Duration maxAge) {
         return ResponseCookie.from(name, value)
                 .httpOnly(httpOnly)
-                .secure(false) // local dev, production nên để true
-                .sameSite("None") // nếu FE và BE khác domain
+                .secure(false) // local dev
+                .sameSite("Lax") // ✅ FIX
                 .path("/")
                 .maxAge(maxAge)
                 .build();

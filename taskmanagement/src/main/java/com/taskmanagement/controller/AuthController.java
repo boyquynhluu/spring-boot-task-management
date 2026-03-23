@@ -164,9 +164,8 @@ public class AuthController {
     private ResponseCookie setCookie(String name, String value, boolean httpOnly, Duration maxAge) {
         return ResponseCookie.from(name, value)
                 .httpOnly(httpOnly)
-                .secure(false) // local dev, production nên để true
-                .sameSite("None")
-                .secure(false)
+                .secure(false) // local dev
+                .sameSite("Lax") // ✅ FIX
                 .path("/")
                 .maxAge(maxAge)
                 .build();
