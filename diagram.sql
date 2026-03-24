@@ -66,10 +66,6 @@ ALTER TABLE `tbl_user`
 ADD provider varchar(255),
 ADD provider_id varchar(255);
 
-delete from tbl_refresh_token where id = 1;
-delete from tbl_verification_token where id = 1;
-delete from tbl_user where id = 1;
-
 select * from tbl_role;
 select * from tbl_user;
 select * from tbl_verification_token;
