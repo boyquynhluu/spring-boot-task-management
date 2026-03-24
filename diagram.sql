@@ -75,4 +75,9 @@ select * from tbl_user;
 select * from tbl_verification_token;
 select * from tbl_refresh_token;
 
+ALTER TABLE tbl_refresh_token 
+MODIFY refresh_token TEXT;
+
+DESC tbl_refresh_token;
+DESC tbl_user;
 

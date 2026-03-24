@@ -14,7 +14,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 import com.taskmanagement.security.jwt.JwtAuthenticationEntryPoint;
@@ -53,24 +52,26 @@ public class SpringSecurity {
         .httpBasic(basic -> basic.disable())
 
         .authorizeHttpRequests(authorize -> authorize
-//            .requestMatchers("/api/auth/**").permitAll()
-            .requestMatchers("/actuator/**").permitAll()
-            .requestMatchers("/uploads/**").permitAll()
-            .requestMatchers(
+                .requestMatchers(
                     "/api/auth/**",
                     "/oauth2/**",
-                    "/login/oauth2/**"
-                ).permitAll()
-            .requestMatchers(
-                    "/api/auth/**",
+                    "/login/oauth2/**",
                     "/actuator/**",
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
                     "/swagger-config/**",
-                    "/swagger-ui.html"
+                    "/swagger-ui.html",
+                    "/uploads/**",
+                    "/resources/**",
+                    "/static/**",
+                    "/css/**",
+                    "/styles/**",
+                    "/js/**",
+                    "/img/**",
+                    "/icon/**",
+                    "/images/**"
                 ).permitAll()
-            .requestMatchers("/resources/**", "/static/**", "/css/**", "/styles/**", "/js/**", "/img/**","/icon/**", "/images/**").permitAll()
-            .anyRequest().authenticated()
+                .anyRequest().authenticated()
         )
         .oauth2Login(oauth2 -> oauth2
                 .successHandler(oAuth2LoginSuccessHandler)
@@ -78,10 +79,9 @@ public class SpringSecurity {
         .exceptionHandling(exception -> exception
                 .authenticationEntryPoint(jwtAuthenticationEntryPoint)
         )
-        .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+        .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .sessionManagement(s -> s.sessionFixation().newSession());
         return http.build();
     }
 

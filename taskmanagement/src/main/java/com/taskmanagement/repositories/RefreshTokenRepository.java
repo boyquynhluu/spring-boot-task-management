@@ -13,5 +13,5 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Inte
     Long getMaxId();
 
     @Query(value = "SELECT * FROM tbl_refresh_token WHERE id=?1", nativeQuery = true)
-    RefreshToken findRefreshTokenById(Long id);
+    RefreshToken findByUserId(Long id);
 }

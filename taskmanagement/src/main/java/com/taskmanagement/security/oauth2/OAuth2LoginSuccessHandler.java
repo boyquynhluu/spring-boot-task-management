@@ -15,7 +15,10 @@ import org.springframework.stereotype.Component;
 
 import com.taskmanagement.constants.Constants;
 import com.taskmanagement.dto.AuthResponse;
+import com.taskmanagement.entities.Role;
 import com.taskmanagement.entities.User;
+import com.taskmanagement.enums.RoleName;
+import com.taskmanagement.repositories.RoleRepository;
 import com.taskmanagement.repositories.UserRepository;
 import com.taskmanagement.security.jwt.JwtTokenProvider;
 
@@ -29,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final JwtTokenProvider jwtTokenProvider;
 
     @Override
@@ -58,17 +62,23 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             u.setProviderId(providerId);
             u.setCreatedAt(LocalDateTime.now());
             u.setUpdatedAt(LocalDateTime.now());
-            // save User
-            userRepository.save(u);
+            // Get Role Id
+            Long roleUserId = roleRepository.findAll()
+                    .stream()
+                    .filter(role -> RoleName.ROLE_USER.name().equals(role.getRoleName().name()))
+                    .map(Role::getId)
+                    .findFirst()
+                    .orElse(null);
+            u.setRoleId(roleUserId);
 
             user = u;
         } else {
             user.setProvider(provider);
             user.setProviderId(providerId);
             user.setUpdatedAt(LocalDateTime.now());
-            // save User
-            userRepository.save(user);
         }
+        // save User
+        userRepository.save(user);
 
         AuthResponse auth = jwtTokenProvider.generateTokenOtherLocal(user);
 
@@ -77,6 +87,13 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         response.sendRedirect("http://localhost:3000/oauth2/success");
     }
 
+    /**
+     * Set Token in Cookie
+     * 
+     * @param response
+     * @param accessToken
+     * @param refreshToken
+     */
     private void setTokenInCookie(HttpServletResponse response, String accessToken, String refreshToken) {
         // Access token: 15 minute
         ResponseCookie accessCookie = setCookie(Constants.ACCESS_TOKEN, accessToken, true, Duration.ofMinutes(15));
@@ -87,6 +104,15 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
     }
 
+    /**
+     * Set Response Cookie
+     * 
+     * @param name
+     * @param value
+     * @param httpOnly
+     * @param maxAge
+     * @return
+     */
     private ResponseCookie setCookie(String name, String value, boolean httpOnly, Duration maxAge) {
         return ResponseCookie.from(name, value)
                 .httpOnly(httpOnly)

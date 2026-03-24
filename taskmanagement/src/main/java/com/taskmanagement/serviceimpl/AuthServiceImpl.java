@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.hibernate.ResourceClosedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -34,6 +35,7 @@ import com.taskmanagement.security.jwt.JwtTokenProvider;
 import com.taskmanagement.service.AuthService;
 import com.taskmanagement.service.VerificationTokenService;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -131,11 +133,11 @@ public class AuthServiceImpl implements AuthService {
 
             userRepository.save(user);
 
-            // tạo token verify
+            // Create token verify
             String token = UUID.randomUUID().toString();
             verificationTokenService.saveTokenRegister(user, token);
 
-            // gửi email
+            // Send email
             mailService.sendVerificationEmail(user, token);
         } catch (Exception e) {
             log.error("Has error when register user: {} ", e.getMessage(), e);
@@ -151,12 +153,12 @@ public class AuthServiceImpl implements AuthService {
 
             if (verificationToken == null) {
                 log.warn("verificationToken is null!");
-                return false;
+                throw new EntityNotFoundException("Token Incorrect!");
             }
 
             if (!isWithin30Minutes(verificationToken)) {
                 log.warn("verificationToken is expiry!");
-                return false;
+                throw new IllegalStateException("Account verification expired!");
             }
 
             User user = userRepository.findUserById(verificationToken.getId());
@@ -164,7 +166,7 @@ public class AuthServiceImpl implements AuthService {
             user.setUpdatedAt(LocalDateTime.now());
             userRepository.save(user);
 
-            // Delete
+            // Delete verificationToken
             tokenRepository.delete(verificationToken);
 
             return true;
@@ -181,18 +183,8 @@ public class AuthServiceImpl implements AuthService {
      */
     private boolean isWithin30Minutes(VerificationToken verificationToken) {
         LocalDateTime now = LocalDateTime.now();
-        Duration duration = Duration.between(verificationToken.getCreatedAt(), verificationToken.getExpirationAt());
-
-        if (duration.toMinutes() <= 30) {
-            // Kiểm tra xem createdAt có không phải là sau thời điểm hiện tại
-            if (!verificationToken.getCreatedAt().isAfter(now)) {
-                // Kiểm tra xem expiryDate có không phải là trước thời điểm hiện tại
-                if (!verificationToken.getExpirationAt().isBefore(now)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return now.isAfter(verificationToken.getCreatedAt())
+                && now.isBefore(verificationToken.getExpirationAt());
     }
 
 }
