@@ -1,8 +1,9 @@
 package com.taskmanagement.mail;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,8 @@ public class MailService {
 
     private final JavaMailSender javaMailSender;
     private final MailTemplateService mailTemplateService;
+    private static final DateTimeFormatter DATE_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
 
     @Value("${spring.mail.username}")
     private String sender;
@@ -42,10 +45,12 @@ public class MailService {
 
         if(Objects.isNull(user)) {
             log.error("User not exist!");
+            return;
         }
 
         try {
-            log.info("Start Send Mail Verify Token");
+            log.info("Start Send Mail Verify Token to user: {}", user.getEmail());
+
             // Creating a mime message
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             // Set info send mail
@@ -55,39 +60,24 @@ public class MailService {
             mimeMessageHelper.setTo(user.getEmail());
             mimeMessageHelper.setSubject("Kích hoạt tài khoản");
 
-            String verifyUrl = frontendUrl + "/verify?token=" + token;
-            String expiredAtStr = formatDateTimeToString(LocalDateTime.now().plusMinutes(30));
+            String verifyUrl = frontendUrl + "/verify?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
+            String expiredAtStr = LocalDateTime.now().plusMinutes(30).format(DATE_TIME_FORMATTER);
+
             String html = mailTemplateService.buildVerifyEmail(
                     user.getName(),
                     verifyUrl,
                     expiredAtStr
             );
-
             mimeMessageHelper.setText(html, true);
 
-            log.info("Send Mail...");
             // Sending the mail
             javaMailSender.send(mimeMessage);
 
-            log.info("Verification email sent to: {}", user.getEmail());
+            log.info("Verification email sent successfully to: {}", user.getEmail());
         } catch (MessagingException e) {
             log.error("Send mail has error: {}", e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("Unexpected error in sendVerificationEmail: {}", e.getMessage(), e);
         }
-    }
-
-    /**
-     * 
-     * @param dateTime
-     * @return
-     */
-    private String formatDateTimeToString(LocalDateTime dateTime) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
-
-        try {
-            return dateTime.format(formatter);
-        } catch (DateTimeParseException e) {
-            log.error("Format Date To String Has Error: {}", e.getMessage(), e);
-        }
-        return null;
     }
 }

@@ -9,7 +9,7 @@ public interface UserService {
 
     public void deleteByRefreshToken(String username);
 
-    public UserResponse getUser(String usernameOrEmail);
+    public UserResponse getUser(String email);
 
     public User getUserByEmail(String email);
 }

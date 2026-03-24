@@ -43,6 +43,29 @@ public class AuthController {
     private final CustomUserDetailsService customUserDetailsService;
     private final UserService userService;
 
+    @PostMapping(value = "/register",
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> registerUser(@Valid @RequestBody UserRequest userRequest) {
+
+        log.info("START REGISTER TOKEN");
+        authService.register(userRequest);
+
+        return Map.of("message", "Đăng ký thành công, Kiểm tra email để kích hoạt tài khoản!");
+    }
+
+    @GetMapping(value = "/verify")
+    public Map<String, Object> verifyAccount(@RequestParam String token) {
+        if(authService.checkValidToken(token)) {
+            return Map.of("Kích Hoạt Thành Công!", HttpStatus.OK);
+        } else {
+            return Map.of(
+                    "status", HttpStatus.INTERNAL_SERVER_ERROR,
+                    "message", "Đã quá hạn kích hoạt tài khoản!"
+                    );
+        }
+    }
+
     @PostMapping(value = "/login")
     public ResponseEntity<?> authenticate(@RequestBody AuthRequest authRequest, HttpServletRequest request,
             HttpServletResponse response) {
@@ -73,7 +96,7 @@ public class AuthController {
         // Lấy email from token
         String email = jwtTokenProvider.getEmailFromToken(refreshToken);
 
-        // Lấy thông tin user từ DB
+        // Get info user from DB or Redis
         UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
 
         // Tạo access token mới
@@ -128,29 +151,13 @@ public class AuthController {
         return new ResponseEntity<>("Logout Success", HttpStatus.OK);
     }
 
-    @PostMapping(value = "/register",
-            produces = MediaType.APPLICATION_JSON_VALUE,
-            consumes = MediaType.APPLICATION_JSON_VALUE)
-    public Map<String, Object> registerUser(@Valid @RequestBody UserRequest userRequest) {
-
-        log.info("START REGISTER TOKEN");
-        authService.register(userRequest);
-
-        return Map.of("message", "Đăng ký thành công, Kiểm tra email để kích hoạt tài khoản!");
-    }
-
-    @GetMapping(value = "/verify")
-    public Map<String, Object> verifyAccount(@RequestParam String token) {
-        if(authService.checkValidToken(token)) {
-            return Map.of("Kích Hoạt Thành Công!", HttpStatus.OK);
-        } else {
-            return Map.of(
-                    "status", HttpStatus.INTERNAL_SERVER_ERROR,
-                    "message", "Đã quá hạn kích hoạt tài khoản!"
-                    );
-        }
-    }
-
+    /**
+     * Set Access Token & Refresh Token in Cookie
+     * 
+     * @param response
+     * @param accessToken
+     * @param refreshToken
+     */
     private void setTokenInCookie(HttpServletResponse response, String accessToken, String refreshToken) {
         // Access token: 15 minute
         ResponseCookie accessCookie = setCookie(Constants.ACCESS_TOKEN, accessToken, true, Duration.ofMinutes(15));
@@ -161,6 +168,15 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
     }
 
+    /**
+     * Set Response Cookie
+     * 
+     * @param name
+     * @param value
+     * @param httpOnly
+     * @param maxAge
+     * @return
+     */
     private ResponseCookie setCookie(String name, String value, boolean httpOnly, Duration maxAge) {
         return ResponseCookie.from(name, value)
                 .httpOnly(httpOnly)

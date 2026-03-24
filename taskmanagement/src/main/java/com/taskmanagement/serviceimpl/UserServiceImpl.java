@@ -41,45 +41,30 @@ public class UserServiceImpl implements UserService {
     private EntityManager entityManager;
 
     @Override
-    public void registerRefreshToken(String usernameOrPassword, String token) {
-        try {
-            User user;
-            if (usernameOrPassword.contains("@")) {
-                user = userRepository.findByEmail(usernameOrPassword).orElseThrow(
-                        () -> new UsernameNotFoundException("User not found with email: " + usernameOrPassword));
-            } else {
-                user = userRepository.findByUsername(usernameOrPassword)
-                        .orElseThrow(() -> new UsernameNotFoundException("User not exist by Username or Email"));
-            }
+    public void registerRefreshToken(String usernameOrEmail, String token) {
 
-            RefreshToken refreshToken = new RefreshToken();
-            // Get max id
-            Long maxId = refreshTokenRepository.getMaxId();
-            refreshToken.setId(maxId == null ? 1 : maxId + 1);
-            refreshToken.setToken(token);
-            refreshToken.setCreatedAt(LocalDateTime.now());
-            refreshToken.setExpirationAt(formatLocalDateTime());
-            refreshToken.setUserId(user.getId());
+        // Get User
+        User user = this.getUserByUsernameOrEmail(usernameOrEmail);
 
-            refreshTokenRepository.save(refreshToken);
-        } catch (Exception e) {
-            log.error("Has error when register refresh token: {}", e.getMessage(), e);
-            throw e;
-        }
+        RefreshToken refreshToken = new RefreshToken();
+        // Get max id
+        Long maxId = refreshTokenRepository.getMaxId();
+        refreshToken.setId(maxId == null ? 1 : maxId + 1);
+        refreshToken.setToken(token);
+        refreshToken.setCreatedAt(LocalDateTime.now());
+        refreshToken.setExpirationAt(formatLocalDateTime());
+        refreshToken.setUserId(user.getId());
+
+        refreshTokenRepository.save(refreshToken);
     }
 
     @Override
-    public void deleteByRefreshToken(String username) {
-        User user;
-        if (username.contains("@")) {
-            user = userRepository.findByEmail(username)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
-        } else {
-            user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not exist by Username or Email"));
-        }
+    public void deleteByRefreshToken(String usernameOrEmail) {
+        log.info("DELETE REFRESH TOKEN");
+        // Get User
+        User user = this.getUserByUsernameOrEmail(usernameOrEmail);
 
-        RefreshToken refreshToken = refreshTokenRepository.findRefreshTokenById(user.getId());
+        RefreshToken refreshToken = refreshTokenRepository.findByUserId(user.getId());
         if (!Objects.isNull(refreshToken)) {
             refreshTokenRepository.delete(refreshToken);
         }
@@ -93,20 +78,27 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse getUser(String usernameOrEmail) {
-        try {
-            User user;
-            if (usernameOrEmail.contains("@")) {
-                user = userRepository.findByEmail(usernameOrEmail).orElseThrow(
-                        () -> new UsernameNotFoundException("User not found with email: " + usernameOrEmail));
-            } else {
-                user = userRepository.findByUsername(usernameOrEmail)
-                        .orElseThrow(() -> new UsernameNotFoundException("User not exist by Username or Email"));
-            }
-            return mapper.map(user, UserResponse.class);
-        } catch (Exception e) {
-            log.error("Find User error: {}", e.getMessage(), e);
+
+        // Get User
+        User user = this.getUserByUsernameOrEmail(usernameOrEmail);
+
+        return mapper.map(user, UserResponse.class);
+    }
+
+    /**
+     * Get User by username or email
+     * 
+     * @param usernameOrEmail
+     * @return
+     */
+    private User getUserByUsernameOrEmail(String usernameOrEmail) {
+        if (usernameOrEmail.contains("@")) {
+            return userRepository.findByEmail(usernameOrEmail).orElseThrow(
+                    () -> new UsernameNotFoundException("User not found with email: " + usernameOrEmail));
+        } else {
+            return userRepository.findByUsername(usernameOrEmail)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not exist by Username or Email"));
         }
-        return null;
     }
 
     /**
@@ -115,13 +107,7 @@ public class UserServiceImpl implements UserService {
      * @return yyyy-MM-dd HH:mm:ss formatted LocalDateTime
      */
     private LocalDateTime formatLocalDateTime() {
-        try {
-            Date currentDate = new Date();
-            Date expireDate = new Date(currentDate.getTime() + jwtRefreshExpirationDate);
-            return expireDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
-        } catch (Exception e) {
-            log.error("Parse LocalDateTime has error: {}", e.getMessage(), e);
-            throw e;
-        }
+        Date expireDate = new Date(new Date().getTime() + jwtRefreshExpirationDate);
+        return expireDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
     }
 }

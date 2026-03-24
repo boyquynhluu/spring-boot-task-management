@@ -60,6 +60,7 @@ spring:
     redis:
       host: localhost
       port: 6379
+      timeout: 2000
 
   messages:
     basename: messages
@@ -87,6 +88,7 @@ logging:
     org.flywaydb: DEBUG
     org.flywaydb.core: DEBUG
     org.springframework.jdbc.datasource: DEBUG
+    org.springframework.cache: TRACE
 
 server:
   port: 8081

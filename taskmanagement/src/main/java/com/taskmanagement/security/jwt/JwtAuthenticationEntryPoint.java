@@ -24,6 +24,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest request, HttpServletResponse response,
             AuthenticationException authException) throws IOException, ServletException {
         log.info("Start JwtAuthenticationEntryPoint:");
+
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> error = Map.of(
                 "error", "Unauthorized",

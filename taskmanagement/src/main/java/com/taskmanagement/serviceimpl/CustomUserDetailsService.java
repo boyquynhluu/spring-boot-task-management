@@ -2,6 +2,7 @@ package com.taskmanagement.serviceimpl;
 
 import java.util.List;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -27,9 +28,10 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
 
+    @Cacheable(value = "users", key = "#usernameOrEmail")
     @Override
     public UserDetails loadUserByUsername(String usernameOrEmail) {
-
+        log.info("HIT DB: " + usernameOrEmail);
         try {
             User user;
             if (usernameOrEmail.contains("@")) {

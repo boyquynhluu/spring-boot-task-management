@@ -35,27 +35,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        String uri = request.getRequestURI();
-        // ✅ Bỏ qua các path không cần kiểm tra token
-        if (uri.startsWith("/api/auth/")||
-                uri.startsWith("/oauth2") ||
-                uri.equals("/api/auth/logout") ||
-                uri.equals("/api/auth/refresh") ||
-                uri.equals("/api/auth/register") ||
-                uri.contains("/swagger-ui") ||
-                uri.contains("/v3/api-docs") ||
-                uri.contains("/swagger-ui.html")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         String token = getTokenFromRequest(request);
 
         try {
-            if (StringUtils.hasText(token)) {
-                jwtTokenProvider.validateToken(token); // ném lỗi nếu có
-
+            if (StringUtils.hasText(token) && SecurityContextHolder.getContext().getAuthentication() == null) {
+                jwtTokenProvider.validateToken(token);
+                // Get email from token
                 String email = jwtTokenProvider.getEmailFromToken(token);
+                // Get user from DB or Redis
                 UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
 
                 UsernamePasswordAuthenticationToken authenticationToken =
@@ -65,15 +52,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
             }
         } catch (ExpiredJwtException ex) {
-            log.warn("JWT expired in filter: {}", ex.getMessage());
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Access token expired");
-            return;
+            log.warn("JWT expired: {}", ex.getMessage());
         } catch (CustomException ex) {
-            log.error("Invalid token: {}", ex.getMessage());
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Invalid token");
-            return;
+            log.error("JWT authentication failed: {}", ex.getMessage());
         }
 
         filterChain.doFilter(request, response);
