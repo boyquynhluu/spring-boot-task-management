@@ -17,12 +17,10 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class TaskController {
 
-
-
     @PostMapping
     public Task createTask(@RequestBody TaskRequest task) {
         log.info("CREATE TASK");
-
+        log.info("Test");
         return new Task();
     }
 }
