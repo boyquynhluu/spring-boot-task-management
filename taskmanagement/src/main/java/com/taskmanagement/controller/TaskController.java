@@ -1,5 +1,6 @@
 package com.taskmanagement.controller;
 
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,10 +18,18 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class TaskController {
 
+    @GetMapping
+    public Task getTask() {
+        log.info("GET TASK");
+        log.info("Test");
+        return new Task();
+    }
+
     @PostMapping
     public Task createTask(@RequestBody TaskRequest task) {
         log.info("CREATE TASK");
         log.info("Test");
         return new Task();
     }
+
 }
