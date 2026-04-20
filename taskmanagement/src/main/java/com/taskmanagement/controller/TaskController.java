@@ -21,7 +21,6 @@ public class TaskController {
     @GetMapping
     public Task getTask() {
         log.info("GET TASK");
-        log.info("Test");
         return new Task();
     }
 
